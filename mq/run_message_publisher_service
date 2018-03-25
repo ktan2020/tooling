@@ -1,0 +1,10 @@
+#!/bin/sh
+
+case "$(id -u -n)" in
+    ec2-user)
+        sudo docker run --rm -d -v "$(pwd)":/home/groovy:ro -w /home/groovy -p 80:9999 --name MP groovy:alpine   /home/groovy/message_publisher_service 
+        ;;
+    *)
+        docker run --rm -it -v "$(pwd)":/home/groovy -w /home/groovy -p 9999:9999 --name MP groovy:alpine   /home/groovy/message_publisher_service
+        ;;
+esac

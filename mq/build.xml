@@ -1,0 +1,93 @@
+<project name="MessagePublisherUtility" basedir="." default="clean">
+	<property name="src.dir"     value="."/>
+	<property name="build.dir"   value="build"/>
+	<property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="groovy.dir"  value="groovy"/>
+	<property name="jar.dir"     value="${build.dir}/jar"/>
+    <property name="dist.dir"    value="${build.dir}/dist"/>
+    
+	<property name="lib.dir"     value="jars"/>
+	<property name="main-class"  value="message_publisher"/>
+	
+    <condition property="isMac">
+        <os family="mac"/>
+    </condition>    
+    
+    
+    <path id="compile.classpath">
+		<pathelement location="${classes.dir}"/>
+		<fileset dir="${lib.dir}">
+			<include name="*.jar"/>
+		</fileset>
+        <fileset dir="${groovy.dir}">
+            <include name="*.jar"/>
+        </fileset>    
+	</path>
+    
+	<taskdef name="groovyc" classname="org.codehaus.groovy.ant.Groovyc">
+		<classpath>
+			<path refid="compile.classpath"/>
+		</classpath>
+	</taskdef>
+	
+    <target name="compile" description="Compile both groovy and java files" depends="init">
+		<groovyc srcdir="${src.dir}" destdir="${classes.dir}">
+			<javac source="1.7" target="1.7" debug="on" deprecation="true"/>
+		</groovyc>
+	</target>
+	
+    <target name="clean">
+		<delete dir="${build.dir}"/>
+	</target>
+        
+    <target name="jar-all" depends="compile">
+		<mkdir dir="${jar.dir}"/>
+		<jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}">
+            <zipgroupfileset dir="${groovy.dir}">
+                <include name="*.jar"/>
+            </zipgroupfileset>
+            <zipgroupfileset dir="${lib.dir}">
+                <include name="*.jar"/>
+            </zipgroupfileset>
+            <zipgroupfileset dir="${jar.dir}">
+                <include name="*.jar"/>
+            </zipgroupfileset>  
+			<manifest>
+				<attribute name="Main-Class" value="${main-class}"/>
+			</manifest>
+		</jar>
+	</target>
+	
+    <target name="jar-one" depends="compile">
+		<mkdir dir="${jar.dir}"/>
+		<jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}">
+			<manifest>
+				<attribute name="Main-Class" value="${main-class}"/>
+			</manifest>
+		</jar>
+	</target>
+    
+    <target name="dist" if="isMac" depends="jar-all">
+        <mkdir dir="${dist.dir}"/>
+        
+        <exec executable="cp">
+            <arg line="run_message_publisher ${dist.dir}"/>
+        </exec>    
+        
+        <copy todir="${dist.dir}/SOAPJMS">
+            <fileset dir="SOAPJMS"/>
+        </copy>    
+        <copy file="${jar.dir}/${ant.project.name}.jar" todir="${dist.dir}"/>
+        
+        <exec executable="/bin/bash">
+            <arg value="./package"/>
+        </exec>
+    </target>    
+	
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${classes.dir}"/>
+        <mkdir dir="${jar.dir}"/>
+    </target>    
+    
+</project>

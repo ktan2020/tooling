@@ -1,0 +1,12 @@
+#!/bin/sh
+
+CLASSPATH=
+
+for jar in `ls ./jars/activemq/*.jar ./jars/messagepublisher/*.jar ./jars/ws/*.jar`; do
+    CLASSPATH=${CLASSPATH}:${jar}
+done
+
+
+echo "CLASSPATH: $CLASSPATH"
+
+groovy -cp $CLASSPATH  message_publisher_service.groovy &> /tmp/jetty.log

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+cd build/dist
+
+jdk=$(/usr/libexec/java_home)
+
+echo "Packaging with: "
+echo $($jdk/bin/javapackager -version)
+echo 
+
+$jdk/bin/javapackager -deploy -native dmg \
+   -srcfiles MessagePublisherUtility.jar -appclass message_publisher -name message_publisher \
+   -outdir . -outfile MessagePublisher -v
+
+ls -l
+
+cd - 

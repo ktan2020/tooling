@@ -1,0 +1,116 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/centos-5.11"
+  config.vm.box_check_update = true
+
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+  # Provider-specific configuration so you can fine-tune various
+  # backing providers for Vagrant. These expose provider-specific options.
+  # Example for VirtualBox:
+  #
+  # config.vm.provider "virtualbox" do |vb|
+  #   # Display the VirtualBox GUI when booting the machine
+  #   vb.gui = true
+  #
+  #   # Customize the amount of memory on the VM:
+  #   vb.memory = "1024"
+  # end
+  
+  config.vm.provision "shell", inline: <<-SHELL
+  
+     USERHOME=/home/vagrant
+  
+     sudo echo "http://vault.centos.org/5.11/os/x86_64/" > /var/cache/yum/base/mirrorlist.txt
+     sudo echo "http://vault.centos.org/5.11/extras/x86_64/" > /var/cache/yum/extras/mirrorlist.txt
+     sudo echo "http://vault.centos.org/5.11/updates/x86_64/" > /var/cache/yum/updates/mirrorlist.txt
+     
+     sudo yum groupinstall -y "Development Tools"
+     sudo yum install -y zlib-devel bzip2-devel libaio-devel
+     
+     export PATH=$USERHOME/workspace/bin:$PATH
+     export LD_LIBRARY_PATH=$USERHOME/workspace/lib
+     export PKG_CONFIG_PATH=$USERHOME/workspace/lib/pkgconfig
+     
+     mkdir -p $USERHOME/temp 
+
+     # ncurses & nano 
+     cp /vagrant/pkgs/ncurses* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz ncurses*
+     cd ncurses*
+     ./configure --prefix=$USERHOME/workspace --with-shared
+     make -j2 && make install
+     cp /vagrant/pkgs/nano* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz nano*
+     cd nano*
+     export C_INCLUDE_PATH=$USERHOME/workspace/include:$USERHOME/workspace/include/ncurses
+     export LIBRARY_PATH=$USERHOME/workspace/lib/ 
+     ./configure --prefix=$USERHOME/workspace 
+     make -j2 && make install 
+     
+     # libreadline
+     cp /vagrant/pkgs/readline* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz readline*
+     cd readline*
+     ./configure --prefix=$USERHOME/workspace
+     make -j2 && make install 
+     
+     # screen 
+     cp /vagrant/pkgs/screen* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz screen*
+     cd screen*
+     ./configure --prefix=$USERHOME/workspace
+     make -j2 && make install
+     
+     # perl 
+     cp /vagrant/pkgs/perl* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz perl*
+     cd perl*
+     sh Configure -de -Dprefix=$USERHOME/workspace
+     make -j2 && make install
+     cp /vagrant/pkgs/ack /vagrant/pkgs/cpanm $USERHOME/workspace/bin
+     
+     # openssl
+     cp /vagrant/pkgs/openssl* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz openssl*
+     cd openssl*
+     ./config --prefix=$USERHOME/workspace --openssldir=$USERHOME/workspace/openssl shared
+     make -j2 && make install 
+     
+     # python
+     cp /vagrant/pkgs/Python* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz Python*
+     cd Python*
+     ./configure --prefix=$USERHOME/workspace --enable-shared --with-ensurepip=yes
+     make -j2 && make install 
+     rm -rf $USERHOME/workspace/lib/python*/test
+     
+     # ruby 
+     cp /vagrant/pkgs/ruby* $USERHOME/temp
+     cd $USERHOME/temp; tar xvfz ruby*
+     cd ruby*
+     ./configure --prefix=$USERHOME/workspace --enable-shared --with-openssl-dir=$USERHOME/workspace --disable-install-doc
+     make -j2 && make install 
+     
+     # oracle 10.2.0.5 (http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html)
+     cp -r /vagrant/pkgs/oracle $USERHOME/temp
+     cd $USERHOME/temp/oracle 
+     for zip in *.zip; do
+        unzip $zip
+     done
+     mv instantclient_10_2 $USERHOME/workspace
+     
+     # sift 
+     cp /vagrant/pkgs/sift* $USERHOME/temp
+     cd $USERHOME/temp
+     tar xvfz sift*
+     cp sift*/sift $USERHOME/workspace/bin
+     
+     # final step
+     sudo chown -R vagrant:vagrant $USERHOME
+     
+  SHELL
+end

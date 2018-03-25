@@ -1,0 +1,29 @@
+#!/bin/sh
+
+if [ $# -ne 1 ]; then
+    echo 
+    echo "Error! Usage: $(basename $0) <redirect url>"
+    echo 
+    exit 1
+fi
+
+
+if [ x"$FRAMEWORK_DEBUG" != x"" ]; then 
+    python $FRAMEWORK_HOME/tools/adyen_ideal_auth.py "$1"
+else
+
+    case "$(uname)" in
+        Linux)
+            #xvfb-run -d -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_ideal_auth.py "$1"
+            xvfb-run -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_ideal_auth.py "$1"            
+            ;;
+        
+        *)
+            ssh -t -t -p 2222 -i $FRAMEWORK_HOME/.vagrant/machines/default/virtualbox/private_key vagrant@localhost "PATH=/vagrant/bin:~/bin:$PATH xvfb-run python /vagrant/tools/adyen_ideal_auth.py  \"$1\" "
+            ;;
+    esac    
+        
+fi
+
+
+exit 0

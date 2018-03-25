@@ -1,0 +1,53 @@
+#!/bin/sh
+
+if [ $# -ne 5 ] && [ $# -ne 6 ]; then
+    echo 
+    echo "Error! Usage:"
+    echo "$(basename $0) <redirect url> <name> <account_no> <bank_id> <sc> <esc>"
+    echo "or"
+    echo "$(basename $0) <redirect url> <name> <iban> <sc> <esc>"
+    echo 
+    exit 1
+fi
+
+if [ $# -eq 5 ]; then
+
+    if [ x"$FRAMEWORK_DEBUG" != x"" ]; then
+        python $FRAMEWORK_HOME/tools/adyen_giropay_auth.py "$1" "$2" "$3" "$4" "$5"
+    else
+    
+        case "$(uname)" in 
+            Linux)
+                #xvfb-run -d -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_giropay_auth.py "$1" "$2" "$3" "$4" "$5"
+                xvfb-run -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_giropay_auth.py "$1" "$2" "$3" "$4" "$5"
+                ;;
+            
+            *)
+                ssh -t -t -p 2222 -i $FRAMEWORK_HOME/.vagrant/machines/default/virtualbox/private_key vagrant@localhost "PATH=/vagrant/bin:~/bin:$PATH xvfb-run python /vagrant/tools/adyen_giropay_auth.py  \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" "
+                ;;
+        esac            
+        
+    fi
+    
+elif [ $# -eq 6 ]; then
+
+    if [ x"$FRAMEWORK_DEBUG" != x"" ]; then 
+        python $FRAMEWORK_HOME/tools/adyen_giropay_auth.py "$1" "$2" "$3" "$4" "$5" "$6" 
+    else
+    
+        case "$(uname)" in 
+            Linux)
+                #xvfb-run -d -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_giropay_auth.py "$1" "$2" "$3" "$4" "$5" "$6" 
+                xvfb-run -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_giropay_auth.py "$1" "$2" "$3" "$4" "$5" "$6" 
+                ;;
+                
+            *)
+                ssh -t -t -p 2222 -i $FRAMEWORK_HOME/.vagrant/machines/default/virtualbox/private_key vagrant@localhost "PATH=/vagrant/bin:~/bin:$PATH xvfb-run python /vagrant/tools/adyen_giropay_auth.py  \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"$6\" "
+                ;;
+        esac
+                
+    fi
+
+fi
+
+exit 0

@@ -1,0 +1,33 @@
+
+defscrollback 30000
+
+attrcolor b ".I"
+
+setenv LC_CTYPE en_US.UTF-8
+startup_message off
+altscreen on 
+vbell off
+altscreen on
+autodetach on
+defbce on
+deflogin on
+defflow off
+defutf8 on
+  
+
+hardstatus alwayslastline
+hardstatus string '%{= kG}[ %H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{Y}%l%{g} %{R}%D %m/%d/%y %{G}%C:%s %A %{g}]'
+
+
+term screen-256color
+terminfo rxvt-unicode 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm'
+
+
+# default windows
+screen -t nano     1 nano    
+screen -t Shell    2 bash
+screen -t Shell    3 bash
+screen -t Shell    4 bash 
+select 1
+bind c screen 1 
+bind 0 select 10

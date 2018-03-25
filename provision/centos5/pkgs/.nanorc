@@ -1,0 +1,65 @@
+set morespace
+set multibuffer
+set nohelp
+set quickblank
+set regexp
+set smooth
+set suspend
+set tabsize 4
+set tabstospaces
+set linenumbers
+set positionlog
+set softwrap
+set constantshow
+set autoindent
+set smarthome
+set titlecolor green,black
+set statuscolor red,yellow
+set matchbrackets "(<[{)>]}"
+
+
+bind ^O insert main
+bind ^S savefile main
+bind M-S writeout main
+bind ^Q exit main
+bind ^W exit main
+
+bind ^P prevword main
+bind ^N nextword main
+bind ^I prevpage main
+bind ^K nextpage main
+
+bind ^G firstline main
+bind M-G lastline main
+bind ^L refresh main
+bind ^J gotoline main
+
+bind ^Space mark main
+bind ^X cut main
+bind ^C copytext main
+bind ^V uncut main
+
+bind ^F whereis all
+bind M-F findnext all
+bind M-P findprevious all
+bind ^R replace main
+bind M-{ findbracket main
+bind M-} findbracket main
+
+bind ^Z undo main
+bind ^Y redo main
+
+bind M-Z suspend main
+bind M-? wordcount main
+bind M-> nextbuf main
+bind M-< prevbuf main
+
+
+#
+# syntax highlight
+#
+
+# https://github.com/scopatz/nanorc
+# https://github.com/serialhex/nano-highlight
+# https://github.com/nanorc/nanorc
+

@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ "$#" -eq 0 ]; then 
+    echo "usage: "
+    echo ""
+    echo "$(basename $0) groovy_script_to_run [params]"
+    echo ""
+    exit 1
+fi
+
+IFS=$(echo -en "\n\b")
+
+CLASSPATH=
+
+for jar in `ls "$(pwd)"/jars/*.jar`; do
+    CLASSPATH="${CLASSPATH}":"$jar"
+done
+
+
+echo "CLASSPATH: $CLASSPATH"
+
+groovy -cp "$CLASSPATH"  "$FRAMEWORK_HOME/lib/${1}".groovy "$@"

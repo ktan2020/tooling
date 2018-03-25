@@ -1,0 +1,136 @@
+#!/usr/bin/env python
+
+import os, sys
+import os.path
+import json
+import base64
+import string
+import uuid
+from optparse import OptionParser
+from progressbar import ProgressBar
+from P4 import P4, P4Exception, OutputHandler
+
+
+P4_EXPORT_ERROR = False
+
+p4 = P4()
+pbar = ProgressBar()
+
+
+parser = OptionParser("usage: %prog [options] arg")
+parser.add_option("-d", "--depot", dest="depot", help="Depot path.")
+parser.add_option("-r", "--root", dest="root", help="Root path.")
+parser.add_option("--strip-components", dest="component", type="int", help="Remove specified # of path elements.")
+parser.set_defaults(root=p4.cwd, component=0)
+
+if len(sys.argv)==1:
+    parser.print_help()
+    sys.exit(1)
+
+(options, args) = parser.parse_args()
+
+if not options.depot:
+    parser.error("!!! Need depot path parameter !!!")
+    sys.exit(1)
+
+
+# strip out last '/' if there's any. otherwise basename will fail
+if options.depot[-1] == "/":
+    options.depot = options.depot[:-1]
+
+
+
+TEMPLATE_CLIENT = "my_template_%s" % uuid.uuid4()
+
+
+print "#" * 80 
+print "p4_version: ", p4.identify()
+print "#" * 80
+print 
+
+print "=" * 80
+print "P4PORT:[%s], P4USER:[%s], P4PASSWD:[%s]" % (p4.env('P4PORT'),p4.env('P4USER'),p4.env('P4PASSWD'))
+print "=" * 80
+print
+
+p4.port = "ssl:perforce.example.com:1666" if not p4.env('P4PORT') else p4.env('P4PORT')
+p4.user = base64.b64decode("***********") if not p4.env('P4USER') else p4.env('P4USER')
+p4.password = base64.b64decode("***********") if not p4.env('P4PASSWD') else p4.env('P4PASSWD')
+
+
+try:
+
+    p4.connect()
+    p4.run_login()
+
+    _ = "--- 8< ---"
+    print string.center(_ * ((80 - 80%len(_))/len(_)), 80)
+    print "p4_info: ", json.dumps(p4.run_info()[0], sort_keys=True, indent=4, separators=(',',': '))
+    print string.center(_ * ((80 - 80%len(_))/len(_)), 80)
+    print
+
+
+    client = p4.fetch_client(TEMPLATE_CLIENT)
+
+
+    LOCAL_PATH = options.depot.replace("//depot/","")
+    
+    _ = LOCAL_PATH.split('/')
+    if options.component != 0:
+        options.component = len(_) if options.component > len(_) else options.component
+        LOCAL_PATH = '/'.join(_[-options.component:])
+        
+    
+    VIEW = '%s/... //%s/%s/...' % (options.depot, TEMPLATE_CLIENT, LOCAL_PATH) if LOCAL_PATH != '' else '%s/... //%s/...' % (options.depot, TEMPLATE_CLIENT)
+    print "!!! Your workspace view mapping: [%s] !!!" % VIEW
+    print
+
+    client._view = [VIEW]
+    client._root = options.root
+    p4.save_client(client) 
+    p4.client = TEMPLATE_CLIENT
+
+
+    class _OutputProgress(OutputHandler):
+        def __init__(self):
+            OutputHandler.__init__(self)
+            self.totalFileCount = 0
+            self.count = 1
+            
+        def outputStat(self, stat):
+            if 'totalFileCount' in stat:
+                self.totalFileCount = int(stat['totalFileCount'])
+                pbar.start(self.totalFileCount)
+            else: 
+                self.count += 1
+                pbar.update(self.count)
+            return OutputHandler.HANDLED
+             
+    handler = _OutputProgress()
+             
+    # p4 sync 
+    p4.run_sync("-f", handler=handler)
+    pbar.finish()
+
+    p4.run_client("-d", TEMPLATE_CLIENT)
+
+
+except P4Exception:
+    
+    sys.stderr.write("XXX Caught a P4 exception !!! XXX \n")
+    for e in p4.errors:
+        print "XXX:", e
+      
+    P4_EXPORT_ERROR = True  
+    
+
+finally:    
+    p4.run_logout()
+    p4.disconnect()
+
+
+print
+print "Done!"
+
+sys.exit(1) if P4_EXPORT_ERROR else sys.exit(0)
+

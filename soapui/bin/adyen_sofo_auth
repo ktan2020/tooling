@@ -1,0 +1,30 @@
+#!/bin/sh
+
+if [ $# -ne 4 ]; then
+    echo 
+    echo "Error! Usage: $(basename $0) <redirect url> <bic> <account #> <pin #>"
+    echo 
+    exit 1
+fi
+
+
+if [ x"$FRAMEWORK_DEBUG" != x"" ]; then
+    python $FRAMEWORK_HOME/tools/adyen_sofo_auth.py "$1" "$2" "$3" "$4" 
+else
+
+    case "$(uname)" in
+        Linux)
+            #xvfb-run -d -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_sofo_auth.py "$1" "$2" "$3" "$4" 
+            xvfb-run -s "-screen 0 1024x768x24" python $FRAMEWORK_HOME/tools/adyen_sofo_auth.py "$1" "$2" "$3" "$4" 
+
+            ;;
+        
+        *)
+            ssh -t -t -p 2222 -i $FRAMEWORK_HOME/.vagrant/machines/default/virtualbox/private_key vagrant@localhost "PATH=/vagrant/bin:~/bin:$PATH xvfb-run python /vagrant/tools/adyen_sofo_auth.py  \"$1\" \"$2\" \"$3\" \"$4\" "
+            ;;
+    esac    
+
+fi
+
+
+exit 0

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+SCRIPT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+CLASSPATH=
+
+for jar in `ls "$SCRIPT_HOME"/jars/*.jar`; do
+    CLASSPATH=${CLASSPATH}:${jar}
+done
+
+
+echo "CLASSPATH: $CLASSPATH"
+
+groovy -cp $CLASSPATH  "$SCRIPT_HOME"/sql_cli.groovy "$@"

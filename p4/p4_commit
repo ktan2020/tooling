@@ -1,0 +1,138 @@
+#!/usr/bin/env python
+
+import os, sys
+import os.path
+import json
+import base64
+import string
+from optparse import OptionParser
+import pprint 
+from P4 import P4, P4Exception, OutputHandler
+
+
+P4_ERROR = False
+
+p4 = P4()
+
+parser = OptionParser("usage: %prog [options] arg")
+parser.add_option("-c", "--client", dest="client", help="Client spec name (with no spaces).")
+parser.add_option("-m", dest="message", help="Commit message (use quotes to longer strings with spaces).")
+parser.add_option("-y", "--yes", action="store_true", dest="I_AM_SURE", default=False, help="Are you sure you want to do this?")
+parser.add_option("-p", "--path", dest="path", help="Local path to commit. Defaults to current working directory or '.'")
+parser.set_defaults(path=".")
+
+
+if len(sys.argv)==1:
+    parser.print_help()
+    sys.exit(1)
+
+(options, args) = parser.parse_args()
+
+
+if not options.client:
+    parser.error("!!! Need client spec name parameter !!!")
+    sys.exit(1)
+        
+if not options.message:
+    parser.error("!!! Commit message is a required field !!!")
+    sys.exit(1)    
+
+options.path = options.path.replace("...","")
+options.path = options.path.strip('/')
+if not os.path.exists(os.path.join(p4.cwd, options.path)): 
+    parser.error("!!! Local path parameter must be a valid path !!!")
+    sys.exit(1)
+
+
+LOCAL_PATH = options.path
+CLIENT_SPEC_NAME = options.client
+
+
+p4.port = "ssl:perforce.example.com:1666" if not p4.env('P4PORT') else p4.env('P4PORT')
+p4.user = base64.b64decode("***********") if not p4.env('P4USER') else p4.env('P4USER')
+p4.password = base64.b64decode("***********") if not p4.env('P4PASSWD') else p4.env('P4PASSWD')
+p4.client = CLIENT_SPEC_NAME
+
+
+def info(mesg, delim="#"):
+    print 
+    print string.center(delim * ((80 - 80%len(delim))/len(delim)), 80)
+    print mesg
+    print string.center(delim * ((80 - 80%len(delim))/len(delim)), 80)
+    print
+    
+
+info("p4_version: %s" % str(p4.identify()))
+
+info("P4PORT:[%s], P4USER:[%s], P4PASSWD:[%s], P4CLIENT:[%s]" % (p4.env('P4PORT'),p4.env('P4USER'),"None" if p4.env('P4PASSWD')==None else "*"*len(p4.env('P4PASSWD')),p4.env('P4CLIENT')), "=")
+
+
+try:
+    
+    p4.connect()
+    p4.run_login()
+
+    
+    info("p4_info: %s" % json.dumps(p4.run_info()[0], sort_keys=True, indent=4, separators=(',',': ')), "=== 8< ===")
+    
+    info("p4_client: %s" % json.dumps(p4.run_client("-o")[0], sort_keys=True, indent=4, separators=(',',': ')), "=== 8< ===")
+
+
+    client = p4.fetch_client(CLIENT_SPEC_NAME)
+    client._root = p4.cwd
+    p4.save_client(client) 
+    change = p4.fetch_change()
+    change._description = options.message
+    change._client = CLIENT_SPEC_NAME
+    
+    print "*** Your pending changes (p4 status): ***"
+    p4_output = p4.run_status()
+    info("%s" % pprint.pformat(p4_output), "+")
+
+    
+    if not options.I_AM_SURE:
+        print "!!! Not committing into P4 unless you explicitly state so !!!" 
+        sys.exit(1)    
+    else:
+        
+        try:
+            
+            print "*** P4 add : %s/... ***" % LOCAL_PATH
+            p4_output = p4.run_add("%s/..." % LOCAL_PATH)
+            info("%s" % pprint.pformat(p4_output), "!")
+            
+            print "*** P4 submit : %s/... ***" % LOCAL_PATH
+            p4_output = p4.run_submit("-d", options.message, "%s/..." % LOCAL_PATH)    
+            info("%s" % pprint.pformat(p4_output), "!")
+
+        except P4Exception:
+            
+            print "*** P4 reconcile : %s/... ***" % LOCAL_PATH
+            p4_output = p4.run_reconcile("%s/..." % LOCAL_PATH)
+            info("%s" % pprint.pformat(p4_output), "!")
+            
+            print "*** P4 submit : %s/... ***" % LOCAL_PATH
+            p4_output = p4.run_submit("-d", options.message, "%s/..." % LOCAL_PATH)    
+            info("%s" % pprint.pformat(p4_output), "!")
+            
+
+except P4Exception:
+    
+    sys.stderr.write("XXX Caught a P4 exception !!! XXX \n")
+    for e in p4.errors:
+        print "XXX:", e
+      
+    P4_ERROR = True  
+    
+
+finally:    
+    
+    p4.run_client("-d", CLIENT_SPEC_NAME)
+    p4.run_logout()
+    p4.disconnect()
+
+
+print
+print "Done!"
+
+sys.exit(1) if P4_ERROR else sys.exit(0)
